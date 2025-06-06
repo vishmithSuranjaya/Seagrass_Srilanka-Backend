@@ -1,3 +1,6 @@
+#postgresql and pgadmin 4 should be installed first .
+#use the vscode terminal to input the following command lines
+
 
 #use these 2 commands to create and activate the virtual environment
 python -m venv venv
