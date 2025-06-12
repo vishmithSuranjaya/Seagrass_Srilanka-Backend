@@ -1,7 +1,7 @@
 from django.db import models
 from users.models import Users
 from admin_actions.models import Admin
-from user.models import User
+from users.models import Users
 
 # Create your models here.
 class Blog(models.Model):
