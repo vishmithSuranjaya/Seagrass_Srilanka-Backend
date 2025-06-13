@@ -57,16 +57,15 @@ def reply_to_comment(request, comment_id):
 @permission_classes([permissions.IsAuthenticated])
 def like_blog(request, blog_id):
     try:
-        blog = Blog.objects.get(blog_id = blog_id)
-
-        #needs work here . i had the codes in another project
-
-        blog.status = f"liked_{timezone.now()}"
+        blog = Blog.objects.get(blog_id=blog_id)
+        blog.like_count += 1
+        blog.status = f"liked_{timezone.now().strftime('%Y%m%d_%H%M%S')}"
         blog.save()
-        return Response({"message" : "Blog Liked", "blog_id": blog_id} ,  status = status.HTTP_200_OK)
+
+        return Response({"message": "Blog Liked", "blog_id": blog_id, "like_count": blog.like_count}, status=status.HTTP_200_OK)
     except Blog.DoesNotExist:
-        return Response({"error" : "Blog not found"}, status = status.HTTP_404_NOT_FOUND)
-    
+        return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
+
 
 #Viewing a specific blog post when reading it 
 @api_view(['GET'])

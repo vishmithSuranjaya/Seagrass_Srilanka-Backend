@@ -1,11 +1,14 @@
 from django.db import models
 from users.models import Users
 from admin_actions.models import Admin
+from users.models import Users
 
 # Create your models here.
 class Blog(models.Model):
     #blog post model
     blog_id = models.CharField(max_length=10, primary_key=True)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, to_field='user_id' )
+    like_count = models.IntegerField(default =0)
     title = models.CharField(max_length=200)
     content = models.TextField(max_length = 1000)
     date = models.DateField()
@@ -13,7 +16,7 @@ class Blog(models.Model):
     status = models.CharField(max_length = 15)
     comment_id = models.CharField(max_length=20, blank = True, null = True)
     media_id = models.CharField(max_length=20, blank=True, null = True)
-    admin_id = models.ForeignKey(Admin, on_delete=models.CASCADE, to_field='admin_id')
+    admin_id = models.ForeignKey(Admin, on_delete=models.SET_NULL, to_field='admin_id', null=True, blank=True , default=None)
 
     def __str__(self):
         return self.title
