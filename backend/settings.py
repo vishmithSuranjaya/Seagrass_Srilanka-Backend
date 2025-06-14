@@ -189,3 +189,4 @@ MEDIA_ROOT = BASE_DIR/ 'media'
 
 #file uploads
 FILE_UPLOAD_PERMISSIONS = 0o644
+
