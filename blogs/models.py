@@ -7,7 +7,7 @@ from users.models import Users
 class Blog(models.Model):
     #blog post model
     blog_id = models.CharField(max_length=10, primary_key=True)
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE, to_field='user_id' )
+    user_id = models.ForeignKey(Users, on_delete=models.CASCADE, to_field='user_id' )
     like_count = models.IntegerField(default =0)
     title = models.CharField(max_length=200)
     content = models.TextField(max_length = 1000)
