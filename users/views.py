@@ -20,27 +20,27 @@ def get_token_for_user(user):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def register_user(request):
-    # this is a user registration endpoint
-
-    serializer = UserRegistrationSerializer(data = request.data)
+    serializer = UserRegistrationSerializer(data=request.data)
+    
     if serializer.is_valid():
         user = serializer.save()
-        tokens = get_tokens_for_user(user)
+        tokens = get_token_for_user(user)
         
         return Response({
             'message': 'User Registered Successfully',
-            'user' : {
-                'user_id' : user.user_id,
-                'fname' : user.fname,
-                'lname' : user.lname,
-                'email' :user.email,
-                'full_name' : user.full_name,
+            'user': {
+                'user_id': user.user_id,
+                'fname': user.fname,
+                'lname': user.lname,
+                'email': user.email,
+                'full_name': user.full_name,
             },
-            'tokens' : tokens
-        }, status = status.HTTP_201_CREATED)
-        
-        return Response(serializer.erros, status = status.HTTP_400_BAD_REQUEST)
+            'tokens': tokens
+        }, status=status.HTTP_201_CREATED)
     
+    # Return errors if serializer is invalid
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
@@ -50,7 +50,7 @@ def login_user(request):
     serializer = UserLoginSerializer(data= request.data)
     if serializer.is_valid():
         user = serializer.validated_data['user']
-        tokens = get_tokens_for_user(user)
+        tokens = get_token_for_user(user)
         
         return Response({
             'message' : 'Login successfull!',
@@ -60,6 +60,7 @@ def login_user(request):
                 'lname' : user.email,
                 'email' : user.email,
                 'full_name' : user.full_name,
+                'is_staff' : user.is_staff,
             },
             'tokens' : tokens
         }, status = status.HTTP_200_OK)
@@ -85,9 +86,10 @@ def update_profile(request):
     if serializer.is_valid():
         serializer.save()
         return Response({
-            'message': 'Porfile updated successfully',
-            'user' : serializer.data
-        }, status - status.HTTP_200_OK)
+    'message': 'Profile updated successfully',
+    'user': serializer.data
+}, status=status.HTTP_200_OK)
+
     
     return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
