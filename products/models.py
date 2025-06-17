@@ -4,11 +4,15 @@ from users.models import Users
 from admin_actions.models import Admin
 from media.models import Media
 
+def products_image_upload_path(instance, filename):
+    return f'products/{filename}'
+
+
 class Product(models.Model):
     #products model for the merchandise page
     product_id = models.CharField(max_length=20, primary_key = True)
     title = models.CharField(max_length = 100)
-    media_id = models.ForeignKey(Media, on_delete=models.CASCADE, to_field='media_id')
+    image = models.ImageField(upload_to=products_image_upload_path, blank=True, null=True)
     price = models.DecimalField(max_digits = 10, decimal_places = 2)
     description = models.TextField(max_length = 200)
     admin_id =models.ForeignKey(Admin, on_delete= models.CASCADE, to_field='admin_id')

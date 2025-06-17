@@ -2,24 +2,34 @@ from django.db import models
 from users.models import Users
 from admin_actions.models import Admin
 from users.models import Users
+from django.utils import timezone
+
+def blog_image_upload_path(instance, filename):
+    return f'blogs/{filename}'
 
 # Create your models here.
 class Blog(models.Model):
     #blog post model
     blog_id = models.CharField(max_length=10, primary_key=True)
-    user_id = models.ForeignKey(Users, on_delete=models.CASCADE, to_field='user_id' )
-    like_count = models.IntegerField(default =0)
-    title = models.CharField(max_length=200)
-    content = models.TextField(max_length = 1000)
-    date = models.DateField()
-    time = models.TimeField()
-    status = models.CharField(max_length = 15)
-    comment_id = models.CharField(max_length=20, blank = True, null = True)
-    media_id = models.CharField(max_length=20, blank=True, null = True)
-    admin_id = models.ForeignKey(Admin, on_delete=models.SET_NULL, to_field='admin_id', null=True, blank=True , default=None)
-
+    user_id = models.ForeignKey(Users, on_delete=models.CASCADE, to_field='user_id')
+    like_count = models.IntegerField(default=0)
+    title = models.CharField(max_length=200, default="Untitled Blog")
+    content = models.TextField(max_length=1000)
+    date = models.DateField(default=timezone.now)
+    time = models.TimeField(default=timezone.now)
+    status = models.CharField(max_length=15, default="active")
+    comment_id = models.CharField(max_length=20, blank=True, null=True, default=None)
+    image = models.ImageField(upload_to=blog_image_upload_path, blank=True, null=True, default=None)
+    admin_id = models.ForeignKey( Admin,  on_delete=models.SET_NULL, to_field='admin_id', null=True, blank=True, default=None)
     def __str__(self):
         return self.title
+
+    def delete(self, *args, **kwargs):
+        if self.image:
+            if os.path.isfile(self.image.path):
+                os.remove(self.image.path)
+        super().delete(*args, **kwargs)
+    
     
     
 class Comments(models.Model):
