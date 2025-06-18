@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/research/', include('research.urls')),
     path('api/media/', include('media.urls')),
     path('api/admin/', include('admin_actions.urls')),
+    path('api/core/', include('core.urls')),
 
     
 ]
