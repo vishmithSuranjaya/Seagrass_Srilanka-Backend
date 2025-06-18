@@ -3,6 +3,10 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from .managers import CustomUserManager
 
+def user_image_upload_path(instance, filename):
+    return f'user/{filename}'
+
+
 class Users(AbstractBaseUser, PermissionsMixin):
     # user model for JWT authentication 
 
@@ -13,6 +17,7 @@ class Users(AbstractBaseUser, PermissionsMixin):
     blog_id = models.CharField(max_length=10, blank=True, null = True)
     cart_id = models.CharField(max_length=15, blank = True, null = True )
     comment_id = models.CharField(max_length =20, blank = True, null =True )
+    image = models.ImageField(upload_to=user_image_upload_path, blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default = False)

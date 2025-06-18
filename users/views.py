@@ -38,7 +38,6 @@ def register_user(request):
             'tokens': tokens
         }, status=status.HTTP_201_CREATED)
     
-    # Return errors if serializer is invalid
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -57,10 +56,11 @@ def login_user(request):
             'user' : {
                 'user_id' : user.user_id,
                 'fname' : user.fname,
-                'lname' : user.email,
+                'lname' : user.lname,
                 'email' : user.email,
                 'full_name' : user.full_name,
                 'is_staff' : user.is_staff,
+                'image': request.build_absolute_uri(user.image.url) if user.image else None,
             },
             'tokens' : tokens
         }, status = status.HTTP_200_OK)
@@ -72,31 +72,71 @@ def login_user(request):
 def user_profile(request):
     # this is used to get the user profile information
 
-    serializer = UserProfileSerializer(request.user)
+    serializer = UserProfileSerializer(request.user, context={'request': request})
     return Response(serializer.data , status = status.HTTP_200_OK)
 
 
-
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([permissions.IsAuthenticated])
 def update_profile(request):
     # this is to update the user profile
 
-    serializer = UserProfileSerializer(request.user, data = request.data, partial=True)
+    serializer = UserProfileSerializer(request.user, data = request.data, partial=True, context={'request': request})
     if serializer.is_valid():
         serializer.save()
         return Response({
-            'message': 'Porfile updated successfully',
-            'user' : serializer.data
-        }, status - status.HTTP_200_OK)
+    'message': 'Profile updated successfully',
+    'user': serializer.data
+}, status=status.HTTP_200_OK)
+
     
     return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
+#user's profile photo upload
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def upload_profile_image(request):
+    
+    if 'image' not in request.FILES:
+        return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    serializer = UserProfileSerializer(request.user, data={'image': request.FILES['image']}, partial=True, context={'request': request})
+    
+    if serializer.is_valid():
+        if request.user.image:
+            try:
+                request.user.image.delete(save=False)
+            except:
+                pass  
+        
+        serializer.save()
+        return Response({
+            'message': 'Profile image uploaded successfully',
+            'image_url': serializer.data.get('image')
+        }, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+#delete user profile picture
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_profile_image(request):  
+    user = request.user
+    if not user.image:
+        return Response({'error': 'No profile image to delete'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user.image.delete(save=True)
+        return Response({'message': 'Profile image deleted successfully'}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': 'Failed to delete image'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# this is a user logout endpoint which will blacklist the refresh token
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def logout_user(request):
-    # this is a user logout endpoint which will blacklist the refresh token
     try:
         refresh_token = request.data.get('refresh_token')
         if refresh_token:
