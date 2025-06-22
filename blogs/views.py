@@ -22,7 +22,7 @@ def blog_list(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def post_blog(request):
-    data = request.data.copy()
+    data = request.data
     data['blog_id'] = str(uuid.uuid4())[:10]
     data['user_id'] = request.user.user_id
     data['status'] = data.get('status', 'active')
@@ -72,9 +72,19 @@ def delete_blog(request, blog_id):
 
 #creating a new comment on the blog
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated ])
 def create_comment(request):
-    serializer = CommentSerializer(data=request.data)
+    data = request.data.copy()
+    comment_id = str(uuid.uuid4())[:10]
+
+    data['comment_id'] = comment_id  # assigning generated comment ID
+
+    # Set the user_id from the logged-in user
+    data['user_id'] = request.user.user_id
+
+    # Use default status if not provided
+    data['status'] = data.get('status', 'active')
+    serializer = CommentSerializer(data=data, context={'request': request })
     if serializer.is_valid():
         serializer.save(user_id=request.user)
         return Response(serializer.data, status = status.HTTP_201_CREATED)

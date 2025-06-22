@@ -148,3 +148,15 @@ def logout_user(request):
             return Response({'error': 'Refresh Token is required' } , status = status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({'error': 'Invalid Token'}, status= status.HTTP_400_BAD_REQUEST)
+
+# to get get any user(other functions allow to get logged in user only) details for blog,
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def get_user(request, user_id):
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = UserProfileSerializer(user, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)

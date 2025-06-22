@@ -15,7 +15,7 @@ class Blog(models.Model):
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE, to_field='user_id')
     like_count = models.IntegerField(default=0)
     title = models.CharField(max_length=200, default="Untitled Blog")
-    content = models.TextField(max_length=1000)
+    content = models.TextField(max_length=5000)
     date = models.DateField(default=timezone.now)
     time = models.TimeField(default=timezone.now)
     status = models.CharField(max_length=15, default="active")

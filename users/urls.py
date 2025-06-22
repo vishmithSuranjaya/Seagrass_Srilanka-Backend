@@ -20,4 +20,7 @@ urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),        # login, get JWT tokens
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),       # refresh access token
     path('token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'), # logout by blacklisting refresh token
+
+    # url path to get any user details
+    path('get_user/<str:user_id>/', views.get_user, name='get_user'),
 ]
