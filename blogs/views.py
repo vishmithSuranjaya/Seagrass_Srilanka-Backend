@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
-from .models import Blog, Comments
+from .models import Blog, Comments, Likes
 from .serializers import BlogSerializer, CommentSerializer
 import os
 import uuid
@@ -22,7 +22,7 @@ def blog_list(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def post_blog(request):
-    data = request.data.copy()
+    data = request.data
     data['blog_id'] = str(uuid.uuid4())[:10]
     data['user_id'] = request.user.user_id
     data['status'] = data.get('status', 'active')
@@ -72,9 +72,19 @@ def delete_blog(request, blog_id):
 
 #creating a new comment on the blog
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated ])
 def create_comment(request):
-    serializer = CommentSerializer(data=request.data)
+    data = request.data.copy()
+    comment_id = str(uuid.uuid4())[:10]
+
+    data['comment_id'] = comment_id  # assigning generated comment ID
+
+    # Set the user_id from the logged-in user
+    data['user_id'] = request.user.user_id
+
+    # Use default status if not provided
+    data['status'] = data.get('status', 'active')
+    serializer = CommentSerializer(data=data, context={'request': request })
     if serializer.is_valid():
         serializer.save(user_id=request.user)
         return Response(serializer.data, status = status.HTTP_201_CREATED)
@@ -100,17 +110,44 @@ def reply_to_comment(request, comment_id):
    
 #liking a blog post
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated]) #change this to isauthenticated
 def like_blog(request, blog_id):
+    user =request.user
+
     try:
         blog = Blog.objects.get(blog_id=blog_id)
-        blog.like_count += 1
-        blog.status = f"liked_{timezone.now().strftime('%Y%m%d_%H%M%S')}"
-        blog.save()
-
-        return Response({"message": "Blog Liked", "blog_id": blog_id, "like_count": blog.like_count}, status=status.HTTP_200_OK)
     except Blog.DoesNotExist:
-        return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error' : 'Blog Not Found'}, status=400)
+    
+
+    existing_like = Likes.objects.filter(blog=blog, user=user).first()
+
+    if existing_like:
+        # removing the like
+        existing_like.delete()
+        blog.like_count = max(blog.like_count -1, 0)
+        blog.save()
+        serializer = BlogSerializer(blog, context={'request': request})
+        return Response({'liked': False, 'like_count':blog.like_count, 'blog':serializer.data})
+    else:
+        Likes.objects.create(blog=blog, user=user)
+        blog.like_count += 1
+        blog.save()
+        serializer = BlogSerializer(blog, context={'request': request})
+        return Response({'liked':True, 'like_count':blog.like_count, 'blog':serializer.data})
+
+
+
+
+    # try:
+    #     blog = Blog.objects.get(blog_id=blog_id)
+    #     blog.like_count += 1
+    #     blog.status = f"liked_{timezone.now().strftime('%Y%m%d_%H%M%S')}"
+    #     blog.save()
+
+    #     return Response({"message": "Blog Liked", "blog_id": blog_id, "like_count": blog.like_count}, status=status.HTTP_200_OK)
+    # except Blog.DoesNotExist:
+    #     return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 #Viewing a specific blog post when reading it 
