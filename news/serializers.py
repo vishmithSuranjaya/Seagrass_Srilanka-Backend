@@ -18,6 +18,8 @@ class NewsSerializer(serializers.ModelSerializer):
     def validate_content(self, value):
         if not value.strip():
             raise serializers.ValidationError("Content cannot be empty.")
+        if len(value) > 10000:
+            raise serializers.ValidationError("Content cannot exceed 10,000 characters.")
         return value.strip()
 
 
@@ -34,4 +36,6 @@ class NewsCreateSerializer(serializers.ModelSerializer):
     def validate_content(self, value):
         if not value.strip():
             raise serializers.ValidationError("Content cannot be empty.")
+        if len(value) > 10000:
+            raise serializers.ValidationError("Content cannot exceed 10,000 characters.")
         return value.strip()

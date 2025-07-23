@@ -77,12 +77,10 @@ def create_comment(request):
     data = request.data.copy()
     comment_id = str(uuid.uuid4())[:10]
 
-    data['comment_id'] = comment_id  # assigning generated comment ID
+    data['comment_id'] = comment_id 
 
-    # Set the user_id from the logged-in user
     data['user_id'] = request.user.user_id
 
-    # Use default status if not provided
     data['status'] = data.get('status', 'active')
     serializer = CommentSerializer(data=data, context={'request': request })
     if serializer.is_valid():
@@ -137,8 +135,6 @@ def like_blog(request, blog_id):
         return Response({'liked':True, 'like_count':blog.like_count, 'blog':serializer.data})
 
 
-
-
     # try:
     #     blog = Blog.objects.get(blog_id=blog_id)
     #     blog.like_count += 1
@@ -160,3 +156,80 @@ def blog_reading(request, blog_id):
         return Response(serializer.data)
     except Blog.DoesNotExist:
         return Response({"error": "Blog not Found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+# List blogs created by admins
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def admin_created_blogs(request):
+    blogs = Blog.objects.filter(user_id__is_staff=True)
+    serializer = BlogSerializer(blogs, many=True, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+# List blogs created by normal users
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def user_created_blogs(request):
+    blogs = Blog.objects.filter(user_id__is_staff=False)
+    serializer = BlogSerializer(blogs, many=True, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+# Admin: View specific blog details
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def admin_blog_detail(request, blog_id):
+    try:
+        blog = Blog.objects.get(blog_id=blog_id)
+        serializer = BlogSerializer(blog, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Blog.DoesNotExist:
+        return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# Admin: Post a new blog
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def admin_post_blog(request):
+    data = request.data.copy()
+    data['blog_id'] = str(uuid.uuid4())[:10]
+    data['user_id'] = data.get('user_id', request.user.user_id)
+    data['status'] = data.get('status', 'active')
+
+    serializer = BlogSerializer(data=data, context={'request': request})
+    if serializer.is_valid():
+        blog = serializer.save(date=timezone.now().date(), time=timezone.now().time())
+        return Response(BlogSerializer(blog, context={'request': request}).data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Admin: Update any blog
+@api_view(['PUT', 'PATCH'])
+@permission_classes([permissions.IsAdminUser])
+def admin_update_blog(request, blog_id):
+    try:
+        blog = Blog.objects.get(blog_id=blog_id)
+
+        if 'image' in request.FILES and blog.image:
+            if os.path.isfile(blog.image.path):
+                os.remove(blog.image.path)
+
+        serializer = BlogSerializer(blog, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            updated_blog = serializer.save()
+            return Response(BlogSerializer(updated_blog, context={'request': request}).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Blog.DoesNotExist:
+        return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# Admin: Delete any blog
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAdminUser])
+def admin_delete_blog(request, blog_id):
+    try:
+        blog = Blog.objects.get(blog_id=blog_id)
+
+        if blog.image and os.path.isfile(blog.image.path):
+            os.remove(blog.image.path)
+
+        blog.delete()
+        return Response({"message": "Blog deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+    except Blog.DoesNotExist:
+        return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)

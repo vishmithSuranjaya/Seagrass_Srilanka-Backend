@@ -43,20 +43,29 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
-    is_staff = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Users
-        fields = ('user_id', 'fname', 'lname', 'email', 'full_name', 'date_joined', 'is_staff', 'image')
-        read_only_fields = ('user_id', 'date_joined', 'is_staff')
+        fields = (
+            'user_id', 'fname', 'lname', 'email',
+            'full_name', 'date_joined', 'is_staff',
+            'image', 'is_active', 'is_superuser', 'last_login',
+        )
+        read_only_fields = ('user_id', 'date_joined', 'full_name', 'is_superuser')
 
     def validate_image(self, value):
         if value:
             if value.size > 5 * 1024 * 1024:
                 raise serializers.ValidationError("Image file too large. Size should not exceed 5MB.")
-            
+
             allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
             if value.content_type not in allowed_types:
                 raise serializers.ValidationError("Invalid image format. Only JPEG, PNG, and GIF are allowed.")
-        
+
         return value
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        if request and not request.user.is_superuser:
+            validated_data.pop('is_staff', None)  
+        return super().update(instance, validated_data)

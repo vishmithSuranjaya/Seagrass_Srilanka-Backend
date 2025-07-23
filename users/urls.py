@@ -23,4 +23,11 @@ urlpatterns = [
 
     # url path to get any user details
     path('get_user/<str:user_id>/', views.get_user, name='get_user'),
+
+    # Admin-only URLs
+    path('admin/all/', views.list_all_users, name='list_all_users'),
+    path('admin/<str:user_id>/update/', views.admin_update_user, name='admin_update_user'),
+    path('admin/<str:user_id>/delete/', views.admin_delete_user, name='admin_delete_user'),
+    path('admin/<str:user_id>/toggle-active/', views.admin_toggle_active_user, name='admin_toggle_active_user'),
+    path('admin/create-admin/', views.superuser_create_admin_user, name='superuser_create_admin_user'),
 ]

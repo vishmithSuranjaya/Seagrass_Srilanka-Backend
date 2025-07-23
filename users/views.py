@@ -6,6 +6,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer
 from .models import Users
+from rest_framework.permissions import IsAdminUser
+from django.contrib.auth import get_user_model
 
 def get_token_for_user(user):
     #this will generate jwt tokens for the user 
@@ -160,3 +162,81 @@ def get_user(request, user_id):
 
     serializer = UserProfileSerializer(user, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+# List all users (admin only)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def list_all_users(request):
+    users = Users.objects.all()
+    serializer = UserProfileSerializer(users, many=True, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAdminUser])
+def admin_update_user(request, user_id):
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if 'is_staff' in request.data:
+        if not request.user.is_superuser:
+            return Response({'error': 'Only the website owner can change admin status.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if user.is_superuser and user == request.user:
+            return Response({'error': 'Cannot remove admin rights from the website owner.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = UserProfileSerializer(user, data=request.data, partial=True, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'message': 'User updated successfully', 'user': serializer.data}, status=status.HTTP_200_OK)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Admin: delete any user
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_user(request, user_id):
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    user.delete()
+    return Response({'message': 'User deleted successfully'}, status=status.HTTP_200_OK)
+
+# Admin: deactivate or activate any user
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def admin_toggle_active_user(request, user_id):
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    is_active = request.data.get('is_active')
+    if is_active is None:
+        return Response({'error': 'is_active field is required'}, status=status.HTTP_400_BAD_REQUEST)
+    # Robustly convert is_active to boolean
+    if isinstance(is_active, bool):
+        user.is_active = is_active
+    elif isinstance(is_active, str):
+        user.is_active = is_active.lower() in ['true', '1', 'yes']
+    elif isinstance(is_active, int):
+        user.is_active = bool(is_active)
+    else:
+        return Response({'error': 'Invalid is_active value'}, status=status.HTTP_400_BAD_REQUEST)
+    user.save()
+    return Response({'message': f'User {"activated" if user.is_active else "deactivated"} successfully', 'is_active': user.is_active}, status=status.HTTP_200_OK)
+
+# Superuser: create admin user
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def superuser_create_admin_user(request):
+    if not request.user.is_superuser:
+        return Response({'error': 'Only the website owner (superuser) can create admin accounts.'}, status=status.HTTP_403_FORBIDDEN)
+    data = request.data.copy()
+    data['is_staff'] = True
+    serializer = UserRegistrationSerializer(data=data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response({'message': 'Admin user created successfully', 'user': UserProfileSerializer(user).data}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

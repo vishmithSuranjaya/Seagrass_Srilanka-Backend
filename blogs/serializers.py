@@ -21,10 +21,13 @@ class CommentSerializer(serializers.ModelSerializer):
         return None
 
 
+
 class BlogSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
     user_has_liked = serializers.SerializerMethodField()
+    user_fname = serializers.SerializerMethodField()
+    user_lname = serializers.SerializerMethodField()
 
     class Meta:
         model = Blog
@@ -39,11 +42,18 @@ class BlogSerializer(serializers.ModelSerializer):
             'time',
             'status',
             'user_id',
+            'user_fname',
+            'user_lname',
             'admin_id',
             'comment_id',
             'comments',
             'user_has_liked',
         ]
+    def get_user_fname(self, obj):
+        return obj.user_id.fname if obj.user_id else ''
+
+    def get_user_lname(self, obj):
+        return obj.user_id.lname if obj.user_id else ''
 
     def get_image_url(self, obj):
         if obj.image:
