@@ -10,11 +10,12 @@ from research.models import Research_articles
 from media.models import Media
 from .serializers import AdminSerializer
 from products.serializers import ProductSerializer
-from news.serializers import NewsSerializer
+from news.serializers import NewsSerializer, NewsCreateSerializer
 from research.serializers import ResearchArticleSerializer
 from .models import Admin
 from media.serializers import MediaSerializer
 from blogs.models import Blog
+from users.models import Users
 
 #admin adding a new product
 @api_view(['POST'])
@@ -30,10 +31,39 @@ def add_products(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAdminUser])
 def add_news(request):
-    serializer = NewsSerializer(data=request.data) 
+    # Only allow if user is staff and has matching admin_id
+    if not request.user.is_staff:
+        return Response({'error': 'User is not an admin.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        admin = Admin.objects.get(admin_id=request.user.user_id)
+    except Admin.DoesNotExist:
+        return Response({'error': 'Admin record not found for this user.'}, status=status.HTTP_400_BAD_REQUEST)
+    data = request.data.copy()
+    data['admin_id'] = admin.admin_id
+    serializer = NewsCreateSerializer(data=data)
     if serializer.is_valid():
         serializer.save(date=timezone.now())
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#admin updating news
+@api_view(['PUT', 'PATCH'])
+@permission_classes([permissions.IsAdminUser])
+def update_news(request, news_id):
+    if not request.user.is_staff:
+        return Response({'error': 'User is not an admin.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        admin = Admin.objects.get(admin_id=request.user.user_id)
+    except Admin.DoesNotExist:
+        return Response({'error': 'Admin record not found for this user.'}, status=status.HTTP_400_BAD_REQUEST)
+    news = News.objects.get(news_id=news_id)
+    data = request.data.copy()
+    data['admin_id'] = admin.admin_id
+    partial = request.method == 'PATCH'
+    serializer = NewsCreateSerializer(news, data=data, partial=partial)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #admin adding a research article

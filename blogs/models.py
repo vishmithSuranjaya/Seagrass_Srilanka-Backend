@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from users.models import Users
 from admin_actions.models import Admin
@@ -14,7 +15,7 @@ class Blog(models.Model):
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE, to_field='user_id')
     like_count = models.IntegerField(default=0)
     title = models.CharField(max_length=200, default="Untitled Blog")
-    content = models.TextField(max_length=1000)
+    content = models.TextField(max_length=5000)
     date = models.DateField(default=timezone.now)
     time = models.TimeField(default=timezone.now)
     status = models.CharField(max_length=15, default="active")
@@ -43,4 +44,16 @@ class Comments(models.Model):
 
     def __str__(self):
         return f"Comment by {self.user_id} on {self.blog_id}"
+
+class Likes(models.Model):
+    like_id = models.IntegerField(default=0)
+    user = models.ForeignKey(Users, on_delete=models.CASCADE,to_field='user_id')
+    blog = models.ForeignKey(Blog, on_delete=models.CASCADE,to_field='blog_id')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'blog')
+
+    def __str__(self):
+        return f"{self.user} liked {self.blog}"
   
