@@ -12,5 +12,7 @@ urlpatterns = [
     path('<str:blog_id>/update/', views.update_blog, name='update-blog'),
     path('<str:blog_id>/delete/', views.delete_blog, name='delete-blog'),
     path('<str:blog_id>/', views.blog_reading, name='blog_reading'),
+    path('blogs/user/<str:user_id>/', views.blogs_by_user, name='blogs-by-user'),
+    path('user/<str:user_id>/', views.blogs_by_user, name='blogs-by-user'),
 
 ]   

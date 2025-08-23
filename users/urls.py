@@ -12,7 +12,8 @@ urlpatterns = [
     path('login/', views.login_user, name='login'),
     path('logout/', views.logout_user, name='logout'),
     path('profile/', views.user_profile, name='user_profile'),
-    path('profile/update/', views.update_profile, name='update_profile'),
+    path('profile/update/<str:user_id>/', views.update_profile, name='update_profile'),
+    path('profile/change_password/<str:user_id>/',views.change_password, name='change_password'),
     path('profile/image/upload/', views.upload_profile_image, name='upload_profile_image'),
     path('profile/image/delete/', views.delete_profile_image, name='delete_profile_image'),
 

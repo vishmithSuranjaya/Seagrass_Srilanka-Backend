@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer
 from .models import Users
+from django.contrib.auth.hashers import check_password
 
 def get_token_for_user(user):
     #this will generate jwt tokens for the user 
@@ -76,22 +77,50 @@ def user_profile(request):
     return Response(serializer.data , status = status.HTTP_200_OK)
 
 
-@api_view(['PUT', 'PATCH'])
-@permission_classes([permissions.IsAuthenticated])
-def update_profile(request):
-    # this is to update the user profile
+# @api_view(['PUT', 'PATCH'])
+# @permission_classes([permissions.IsAuthenticated])
+# def update_profile(request):
+#     # this is to update the user profile
 
-    serializer = UserProfileSerializer(request.user, data = request.data, partial=True, context={'request': request})
-    if serializer.is_valid():
-        serializer.save()
-        return Response({
-    'message': 'Profile updated successfully',
-    'user': serializer.data
-}, status=status.HTTP_200_OK)
+#     serializer = UserProfileSerializer(request.user, data = request.data, partial=True, context={'request': request})
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response({
+#     'message': 'Profile updated successfully',
+#     'user': serializer.data
+# }, status=status.HTTP_200_OK)
 
     
-    return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+#     return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)@api_view(['PUT', 'PATCH'])
+@api_view(['PUT', 'PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def update_profile(request, user_id):
+    try:
+        user_instance = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    # Ensure only the owner (by matching IDs) or admin can update
+    if str(request.user.user_id) != str(user_instance.user_id) and not request.user.is_staff:
+        return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = UserProfileSerializer(
+        user_instance,
+        data=request.data,
+        partial=True,
+        context={'request': request}
+    )
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {
+                'message': 'Profile updated successfully',
+                'user': serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 #user's profile photo upload
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
@@ -160,3 +189,29 @@ def get_user(request, user_id):
 
     serializer = UserProfileSerializer(user, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+#to change the password
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def change_password(request, user_id):
+    user = request.user
+
+    # Optional: ensure only the user themselves can change their password
+    if str(user.user_id) != str(user_id):
+        return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+
+    current_password = request.data.get('current_password')
+    new_password = request.data.get('new_password')
+
+    if not current_password or not new_password:
+        return Response({'error': 'Both current and new password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verify current password
+    if not check_password(current_password, user.password):
+        return Response({'error': 'Current password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Set new password
+    user.set_password(new_password)
+    user.save()
+
+    return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)

@@ -160,3 +160,15 @@ def blog_reading(request, blog_id):
         return Response(serializer.data)
     except Blog.DoesNotExist:
         return Response({"error": "Blog not Found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# Fetch all blogs by a specific user
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])  # if you want anyone to view, else use IsAuthenticated
+def blogs_by_user(request, user_id):
+    try:
+        blogs = Blog.objects.filter(user_id_id=user_id).order_by('-date', '-time')
+        serializer = BlogSerializer(blogs, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Blog.DoesNotExist:
+        return Response({"error": "No blogs found for this user"}, status=status.HTTP_404_NOT_FOUND)
