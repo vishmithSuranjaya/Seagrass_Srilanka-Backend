@@ -41,12 +41,13 @@ class Comments(models.Model):
     content = models.TextField(max_length=500)
     status = models.CharField(max_length = 15)
     type = models.CharField(max_length = 30)
+    #created time/date
 
     def __str__(self):
         return f"Comment by {self.user_id} on {self.blog_id}"
 
 class Likes(models.Model):
-    like_id = models.IntegerField(default=0)
+    
     user = models.ForeignKey(Users, on_delete=models.CASCADE,to_field='user_id')
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE,to_field='blog_id')
     created_at = models.DateTimeField(auto_now_add=True)
