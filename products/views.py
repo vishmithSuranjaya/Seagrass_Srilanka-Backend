@@ -4,6 +4,10 @@ from rest_framework.response import Response
 from django.utils import timezone
 from .models import Product, Cart, Payment
 from .serializers import ProductSerializer, CartSerializer, PaymentSerializer
+import hashlib
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
 
 #list all products
 @api_view(['GET'])
@@ -55,4 +59,45 @@ def process_payment(request):
         Cart.objects.filter(user_id=request.user).delete()
         return Response(serializer.data, status = status.HTTP_201_CREATED)
     return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
+
+@csrf_exempt
+def create_payment(request):
+    merchant_id = "YOUR_MERCHANT_ID"
+    merchant_secret = "YOUR_MERCHANT_SECRET"
+
+    order_id = "ORDER1234"
+    amount = "1000.00"
+    currency = "LKR"
+
+    return_url = "http://localhost:3000/payment-success"
+    cancel_url = "http://localhost:3000/payment-cancel"
+    notify_url = "http://127.0.0.1:8000/api/payment/notify/"  # backend callback
+
+    # Generate hash (MD5 uppercase)
+    hash_string = merchant_id + order_id + amount + currency + merchant_secret
+    hash_value = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
+
+    payload = {
+        "sandbox": True,
+        "merchant_id": merchant_id,
+        "return_url": return_url,
+        "cancel_url": cancel_url,
+        "notify_url": notify_url,
+        "order_id": order_id,
+        "items": "Test Item",
+        "amount": amount,
+        "currency": currency,
+        "hash": hash_value,
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john@example.com",
+        "phone": "0771234567",
+        "address": "Colombo",
+        "city": "Colombo",
+        "country": "Sri Lanka",
+    }
+
+    return JsonResponse(payload)
+
 

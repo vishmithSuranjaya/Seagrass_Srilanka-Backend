@@ -195,3 +195,8 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 # Allowed image extensions
 ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+
+#for the google calender
+GOOGLE_CLIENT_ID = "858611739041-90tcrhafg7po44gpihk6f4jel60cdh7n.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "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"
+GOOGLE_REDIRECT_URI = "http://localhost:8000/api/auth/google/callback/"

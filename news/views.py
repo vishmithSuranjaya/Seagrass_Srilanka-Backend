@@ -5,6 +5,14 @@ from django.shortcuts import get_object_or_404
 from .models import News
 from .serializers import NewsSerializer, NewsCreateSerializer
 
+#for google calender functions
+from django.conf import settings
+from django.http import JsonResponse, HttpResponseRedirect
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+import os
+
+
 # Reading all published news articles
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
@@ -94,3 +102,63 @@ def admin_news_list(request):
         'count': len(serializer.data),
         'data': serializer.data
     })
+
+
+#for google calender functions
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # allow http for local dev
+
+# Step 1: Redirect to Google
+def google_login(request):
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
+        scopes=["https://www.googleapis.com/auth/calendar.readonly"]
+    )
+    flow.redirect_uri = settings.GOOGLE_REDIRECT_URI
+    authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true")
+    request.session["state"] = state
+    return HttpResponseRedirect(authorization_url)
+
+# Step 2: Handle Google callback
+def google_callback(request):
+    state = request.session["state"]
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
+        scopes=["https://www.googleapis.com/auth/calendar.readonly"],
+        state=state
+    )
+    flow.redirect_uri = settings.GOOGLE_REDIRECT_URI
+    flow.fetch_token(authorization_response=request.build_absolute_uri())
+    credentials = flow.credentials
+
+    # Save tokens in session (or DB)
+    request.session["credentials"] = {
+        "token": credentials.token,
+        "refresh_token": credentials.refresh_token,
+        "token_uri": credentials.token_uri,
+        "client_id": credentials.client_id,
+        "client_secret": credentials.client_secret,
+        "scopes": credentials.scopes
+    }
+
+    return HttpResponseRedirect("http://localhost:3000/calendar")  # redirect React frontend
+
+# Step 3: Fetch calendar events
+def get_calendar_events(request):
+    events = News.objects.all().values("news_id", "title", "created_at", "updated_at")
+    return JsonResponse(list(events), safe=False)
