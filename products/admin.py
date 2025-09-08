@@ -10,9 +10,9 @@ class ProductsAdmin(admin.ModelAdmin):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
-    list_display = ('cart_id', 'user_id', 'product_id', 'count', 'total_amount')
-    list_filter = ('user_id', 'product_id')
-    search_fields = ('cart_id',)
+    list_display = ( 'user_id', 'total_amount')
+    list_filter = ('user_id',)
+    search_fields = ('user_id',)
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):

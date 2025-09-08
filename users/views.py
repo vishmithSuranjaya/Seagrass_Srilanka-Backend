@@ -107,6 +107,7 @@ def update_profile(request, user_id):
     serializer = UserProfileSerializer(
         user_instance,
         data=request.data,
+        # files=request.FILES, 
         partial=True,
         context={'request': request}
     )
