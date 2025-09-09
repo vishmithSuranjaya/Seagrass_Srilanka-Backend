@@ -39,7 +39,13 @@ def get_news_detail(request, news_id):
 @api_view(['POST'])
 @permission_classes([permissions.IsAdminUser])
 def add_news(request):
-    serializer = NewsCreateSerializer(data=request.data)
+    if not request.user.is_staff:
+        return Response({'error': 'User is not an admin.'}, status=status.HTTP_403_FORBIDDEN)   
+    data = request.data.copy()
+    data['admin_id'] = request.user.user_id
+    data['user_id'] = request.user.user_id 
+
+    serializer = NewsCreateSerializer(data=data)
     if serializer.is_valid():
         news = serializer.save()
         response_serializer = NewsSerializer(news)
@@ -63,7 +69,10 @@ def update_news(request, news_id):
     
     # Use partial update for PATCH requests
     partial = request.method == 'PATCH'
-    serializer = NewsCreateSerializer(news, data=request.data, partial=partial)
+    data = request.data.copy()
+    data['admin_id'] = request.user.user_id
+    data['user_id'] = request.user.user_id
+    serializer = NewsCreateSerializer(news, data=data, partial=partial)
     
     if serializer.is_valid():
         updated_news = serializer.save()
