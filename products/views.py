@@ -4,6 +4,7 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.utils import timezone
+import hashlib
 
 from users.models import Users
 from .models import Product, Cart, Payment, CartItem
@@ -78,20 +79,19 @@ def create_payment(request):
     items_list = request.data.get("items", [])
     items = ", ".join([str(item["product_id"]) for item in items_list]) if items_list else "Products"
 
-
-
-    return_url = "http://localhost:3000/home"
+    return_url = "http://localhost:5173/user"
     cancel_url = "http://localhost:3000/news"
-    notify_url = "http://localhost:8000/api/products/payment/payment_notify/"  # backend callback
+    notify_url = "http://localhost:8000/api/products/payment/payment_notify/"
+    secret_hash = hashlib.md5(merchant_secret.encode('utf-8')).hexdigest().upper()
 
-    # Generate hash (MD5 uppercase)
-    hash_string = merchant_id + order_id + amount + currency + merchant_secret
+    hash_string = merchant_id + order_id + amount + currency + secret_hash
+
     hash_value = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
-    print(hash_string)
-    print(hash_value)
+    # --------------------------
+
     payload = {
         "sandbox": True,
-        "merchant_id":  merchant_id,
+        "merchant_id": merchant_id,
         "return_url": return_url,
         "cancel_url": cancel_url,
         "notify_url": notify_url,
@@ -101,16 +101,15 @@ def create_payment(request):
         "currency": currency,
         "hash": hash_value,
         "first_name": "Seagrass",
-        "last_name": "Sri lanka",
+        "last_name": "Sri Lanka",
         "email": "suranjaya0327@gmail.com",
         "phone": "0771234567",
         "address": "Colombo",
         "city": "Colombo",
         "country": "Sri Lanka",
     }
-    
-    return JsonResponse(payload)
 
+    return JsonResponse(payload)
 
 
 #display a product when the id is given
