@@ -108,7 +108,7 @@ def reply_to_comment(request, comment_id):
    
 #liking a blog post
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated]) #change this to isauthenticated
+@permission_classes([permissions.IsAuthenticated]) 
 def like_blog(request, blog_id):
     user =request.user
 
@@ -237,7 +237,7 @@ def admin_delete_blog(request, blog_id):
 
 # Fetch all blogs by a specific user
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])  # if you want anyone to view, else use IsAuthenticated
+@permission_classes([permissions.AllowAny])  
 def blogs_by_user(request, user_id):
     try:
         blogs = Blog.objects.filter(user_id_id=user_id).order_by('-date', '-time')
@@ -245,3 +245,26 @@ def blogs_by_user(request, user_id):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Blog.DoesNotExist:
         return Response({"error": "No blogs found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# to fetch the comments put by particular user
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def comments_by_user(request, user_id):
+    try:
+        comments = Comments.objects.filter(user_id=user_id)
+        serializer = CommentSerializer(comments, many=True, context={'request':request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Comments.DoesNotExist:
+        return Response({"error": "No comments found for this user"}, status=status.HTTP_404_NOT_FOUND)
+    
+# to delete a comment by the user
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_comment(request, comment_id):
+    try:
+        comment = Comments.objects.get(comment_id=comment_id, user_id=request.user.user_id)
+        comment.delete()
+        return Response({"message": "Comment deleted"}, status=status.HTTP_204_NO_CONTENT)
+    except Comments.DoesNotExist:
+        return Response({"error": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)

@@ -4,6 +4,7 @@ from .models import Blog, Comments, Likes
 class CommentSerializer(serializers.ModelSerializer):
     author_full_name = serializers.SerializerMethodField()
     author_image = serializers.SerializerMethodField()
+    blog_title = serializers.CharField(source="blog_id.title",read_only=True)
     
     class Meta:
         model = Comments

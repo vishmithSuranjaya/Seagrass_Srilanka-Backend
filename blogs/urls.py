@@ -13,6 +13,8 @@ urlpatterns = [
     path('<str:blog_id>/', views.blog_reading, name='blog_reading'),
     path('blogs/user/<str:user_id>/', views.blogs_by_user, name='blogs-by-user'),
     path('user/<str:user_id>/', views.blogs_by_user, name='blogs-by-user'),
+    path('user/blog_comments/<str:user_id>/', views.comments_by_user, name='comment_by_user'),
+    path('user/delete_comment/<str:comment_id>/', views.delete_comment, name='delete_comment'),
 
     path('admin/adminposts/', views.admin_created_blogs, name='admin_created_blogs'),
     path('admin/userposts/', views.user_created_blogs, name='user_created_blogs'),
