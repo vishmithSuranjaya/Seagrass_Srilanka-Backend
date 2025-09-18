@@ -1,12 +1,31 @@
 from rest_framework import serializers
 from .models import Product, Cart, Payment, CartItem
 
+
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
 
+    def validate_title(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Title cannot be empty.")
+        return value.strip()
 
+    def validate_description(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Description cannot be empty.")
+        if len(value) > 200:
+            raise serializers.ValidationError("Description cannot exceed 200 characters.")
+        return value.strip()
+
+    def validate_price(self, value):
+        if value is None:
+            raise serializers.ValidationError("Price is required.")
+        if value < 0:
+            raise serializers.ValidationError("Price cannot be negative.")
+        return value
+  
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:

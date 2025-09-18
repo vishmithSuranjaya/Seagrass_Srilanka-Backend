@@ -4,6 +4,9 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.utils import timezone
+import hashlib
+import os
+from django.shortcuts import get_object_or_404
 
 from users.models import Users
 from .models import Product, Cart, Payment, CartItem
@@ -21,15 +24,89 @@ def product_list(request):
     serializer = ProductSerializer(products, many = True)
     return Response(serializer.data)
 
-#new product is added by the admin
+#list all products for admins
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def admin_product_list(request):
+    products = Product.objects.all()
+    serializer = ProductSerializer(products, many = True)
+    return Response(serializer.data)
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAdminUser])
 def add_products(request):
-    serializer = ProductSerializer(data = request.data)
+    if not request.user.is_staff:
+        return Response({'error': 'User is not an admin.'}, status=status.HTTP_403_FORBIDDEN)   
+    
+    data = request.data.copy()
+    data['admin_id'] = request.user.user_id
+    data['user_id'] = request.user.user_id
+
+    serializer = ProductSerializer(data=data)
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status = status.HTTP_201_CREATED)
-    return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+        product = serializer.save()
+        return Response({
+            'success': True,
+            'message': 'Product created successfully',
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+    return Response({
+        'success': False,
+        'message': 'Validation failed',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+# Delete a product (admin only)
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAdminUser])
+def delete_product(request, product_id):
+    product = Product.objects.filter(product_id=product_id).first()
+    if not product:
+        return Response({
+            'success': False,
+            'message': 'Product not found',
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if product.image and product.image.name:
+        if os.path.isfile(product.image.path):
+            os.remove(product.image.path)
+    
+    product.delete()
+    return Response({
+        'success': True,
+        'message': 'Product and its image deleted successfully',
+    }, status=status.HTTP_200_OK)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([permissions.IsAdminUser])
+def update_product(request, product_id):
+    product = get_object_or_404(Product, product_id=product_id)
+
+    partial = request.method == 'PATCH'
+    data = request.data.copy()
+    data['admin_id'] = request.user.user_id
+    if 'product_id' in data:
+        data.pop('product_id')
+
+
+    serializer = ProductSerializer(product, data=data, partial=partial)
+
+    if serializer.is_valid():
+        updated_product = serializer.save()
+        response_serializer = ProductSerializer(updated_product)
+        return Response({
+            'success': True,
+            'message': 'Product updated successfully',
+            'data': response_serializer.data
+        }, status=status.HTTP_200_OK)
+
+    return Response({
+        'success': False,
+        'message': 'Validation failed',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 
 # #add a product to user's cart
@@ -78,20 +155,19 @@ def create_payment(request):
     items_list = request.data.get("items", [])
     items = ", ".join([str(item["product_id"]) for item in items_list]) if items_list else "Products"
 
-
-
-    return_url = "http://localhost:3000/home"
+    return_url = "http://localhost:5173/user"
     cancel_url = "http://localhost:3000/news"
-    notify_url = "http://localhost:8000/api/products/payment/payment_notify/"  # backend callback
+    notify_url = "http://localhost:8000/api/products/payment/payment_notify/"
+    secret_hash = hashlib.md5(merchant_secret.encode('utf-8')).hexdigest().upper()
 
-    # Generate hash (MD5 uppercase)
-    hash_string = merchant_id + order_id + amount + currency + merchant_secret
+    hash_string = merchant_id + order_id + amount + currency + secret_hash
+
     hash_value = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
-    print(hash_string)
-    print(hash_value)
+    # --------------------------
+
     payload = {
         "sandbox": True,
-        "merchant_id":  merchant_id,
+        "merchant_id": merchant_id,
         "return_url": return_url,
         "cancel_url": cancel_url,
         "notify_url": notify_url,
@@ -101,24 +177,23 @@ def create_payment(request):
         "currency": currency,
         "hash": hash_value,
         "first_name": "Seagrass",
-        "last_name": "Sri lanka",
+        "last_name": "Sri Lanka",
         "email": "suranjaya0327@gmail.com",
         "phone": "0771234567",
         "address": "Colombo",
         "city": "Colombo",
         "country": "Sri Lanka",
     }
-    
-    return JsonResponse(payload)
 
+    return JsonResponse(payload)
 
 
 #display a product when the id is given
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-def product_detail(request, pk):
+def product_detail(request, product_id):
     try:
-        product = Product.objects.get(pk=pk)
+        product = Product.objects.get(product_id=product_id)
     except Product.DoesNotExist:
         return Response(
             {"error": "Product not found"},
