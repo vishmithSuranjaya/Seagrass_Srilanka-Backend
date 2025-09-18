@@ -4,6 +4,7 @@ from users.models import Users
 from admin_actions.models import Admin
 from media.models import Media
 from django.contrib.auth import get_user_model
+import uuid
 
 
 def products_image_upload_path(instance, filename):
@@ -11,8 +12,8 @@ def products_image_upload_path(instance, filename):
 
 
 class Product(models.Model):
-    #products model for the merchandise page
-    product_id = models.CharField(max_length=20, primary_key = True)
+    product_id = models.CharField(max_length=20, primary_key = True,default=lambda: str(uuid.uuid4())[:10],
+        editable=False)
     title = models.CharField(max_length = 100)
     image = models.ImageField(upload_to=products_image_upload_path, blank=True, null=True)
     price = models.DecimalField(max_digits = 10, decimal_places = 2)

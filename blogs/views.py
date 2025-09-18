@@ -64,6 +64,8 @@ def delete_blog(request, blog_id):
         
         if blog.user_id != request.user and not request.user.is_staff:
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        if blog.image and os.path.isfile(blog.image.path):
+            os.remove(blog.image.path)
         
         blog.delete()  
         return Response({"message": "Blog deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
