@@ -37,7 +37,7 @@ class Product(models.Model):
 
 class Payment(models.Model):
     #this is for payment of products
-    payment_id = models.CharField(max_length=20, primary_key = True)
+    payment_id = models.CharField(max_length=50, primary_key = True)
     product_id = models.ForeignKey(Product, on_delete=models.CASCADE, to_field='product_id')
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE, to_field='user_id')
     amount = models.DecimalField(max_digits=10, decimal_places = 2)

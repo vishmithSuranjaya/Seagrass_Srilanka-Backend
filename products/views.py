@@ -1,3 +1,4 @@
+from decimal import Decimal
 from urllib import request
 import uuid
 from rest_framework import status, permissions
@@ -148,7 +149,7 @@ def create_payment(request):
     merchant_id = "1231902"
     merchant_secret = "OTgwNzgzMzI3MzM5Njc5MTc4NzIyMTg4NTYwNTI3ODYyMzc0MDU="
 
-    order_id = str(uuid.uuid4())
+    order_id = str(uuid.uuid4())[0:20]
     amount = "{:.2f}".format(float(request.data.get("total_amount", 0)))
     currency = "LKR"
 
@@ -157,14 +158,13 @@ def create_payment(request):
 
     return_url = "http://localhost:5173/user"
     cancel_url = "http://localhost:3000/news"
-    notify_url = "http://localhost:8000/api/products/payment/payment_notify/"
+    notify_url = "http://localhost:8000/api/products/payment/payment_notify"
     secret_hash = hashlib.md5(merchant_secret.encode('utf-8')).hexdigest().upper()
 
     hash_string = merchant_id + order_id + amount + currency + secret_hash
 
     hash_value = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
     # --------------------------
-
     payload = {
         "sandbox": True,
         "merchant_id": merchant_id,
@@ -309,55 +309,40 @@ def remove_cart_item(request, product_id):
         "total_cart_amount": cart.total_amount
     }, status=status.HTTP_200_OK)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])  # PayHere does not send auth token
 def payment_notify(request):
     merchant_id = "1231902"
     merchant_secret = "OTgwNzgzMzI3MzM5Njc5MTc4NzIyMTg4NTYwNTI3ODYyMzc0MDU="
-    # --- Step 1: Extract required data ---
-    data = request.POST  # PayHere sends data as form-encoded
-    order_id = data.get("order_id")
-    payment_id = data.get("payment_id")
-    amount = data.get("amount")
-    currency = data.get("currency")
-    received_hash = data.get("hash")
-    status_code = data.get("status_code")  # 2 = success, 3 = failed, 0 = pending
-    customer_email = data.get("email")
-    product_name = data.get("items")  # the product name(s) sent in payment creation
 
-    # --- Step 2: Verify hash ---
-    hash_string = merchant_id + order_id + str(amount) + currency + merchant_secret
-    expected_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
+    print("🔥 Payment notify called")
+    print("POST DATA:", request.POST)
 
-    if received_hash != expected_hash:
-        # Invalid request, ignore or log
-        return Response("Invalid hash", status=400)
 
-    # --- Step 3: Process only successful payments ---
-    if status_code == "2":  # Payment success
-        # Find user by email
-        try:
-            user = Users.objects.get(email=customer_email)
-        except Users.DoesNotExist:
-            return Response("User not found", status=404)
 
-        # Find product by name (or handle multiple products)
-        try:
-            product = Product.objects.get(name=product_name)
-        except Product.DoesNotExist:
-            return Response("Product not found", status=404)
 
-        # Create Payment record
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def save_payment(request):
+    try:
+        user = request.user
+        data = request.data
+        product_id = data.get("product_id")
+        amount = Decimal(data.get("amount"))
+        payment_id = data.get("payment_id")  # you can generate a temporary id
+
+        product = Product.objects.get(product_id=product_id)
+
         Payment.objects.create(
             payment_id=payment_id,
             product_id=product,
             user_id=user,
             amount=amount,
-            date_time=timezone.now(),
+            date_time=timezone.now()
         )
-
-        # Optionally, clear cart items for this user
-        user.cart.items.all().delete()
-    
-    # --- Step 4: Respond to PayHere ---
-    return Response("OK", status=200)
+        return JsonResponse({"success": True})
+    except Exception as e:
+        print("Error saving payment:", e)
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

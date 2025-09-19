@@ -11,6 +11,7 @@ urlpatterns = [
     path("payment/create_payment/", create_payment, name="create_payment"),
     path("payment/payment_notify", views.payment_notify,  name="payment_notify"),
     path('view_products/<str:product_id>/', views.product_detail, name='product-detail'),
+    path('payment/save_payment/', views.save_payment, name="save_payment"),
 
     # Admin-only endpoints
     path('admin/list/', views.admin_product_list, name='admin_product_list'),
