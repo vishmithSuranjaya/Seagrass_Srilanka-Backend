@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'research',
     'media',
     'admin_actions',
-
+    'order',
 ]
 
 MIDDLEWARE = [

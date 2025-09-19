@@ -9,6 +9,7 @@ import hashlib
 import os
 from django.shortcuts import get_object_or_404
 
+from order.models import Order, OrderItem
 from users.models import Users
 from .models import Product, Cart, Payment, CartItem
 from .serializers import ProductSerializer, CartSerializer, PaymentSerializer
@@ -334,15 +335,41 @@ def save_payment(request):
         payment_id = data.get("payment_id")  # you can generate a temporary id
 
         product = Product.objects.get(product_id=product_id)
+        
 
-        Payment.objects.create(
+        payment = Payment.objects.create(
             payment_id=payment_id,
             product_id=product,
             user_id=user,
             amount=amount,
             date_time=timezone.now()
         )
-        return JsonResponse({"success": True})
+        
+        # 2️⃣ Create Order
+        order_id = uuid.uuid4().hex[:20]  # limit to 20 chars
+        order = Order.objects.create(
+            order_id=order_id,
+            payment_id=payment,
+            price=amount
+        )
+
+        # 3️⃣ Create OrderItems
+        items = data.get("items", [])  # list of products with quantity
+        print(items)
+        for item in items:
+            product = Product.objects.get(product_id=item["product_id"])
+            quantity = item.get("quantity", 1)
+            OrderItem.objects.create(
+                order_id=order,
+                product_id=product,
+                quantity=quantity
+            )
+
+        return JsonResponse({
+            "success": True,
+            "payment_id":payment_id,
+            "order_id": order.order_id
+        })
     except Exception as e:
         print("Error saving payment:", e)
         return JsonResponse({"success": False, "error": str(e)}, status=500)
