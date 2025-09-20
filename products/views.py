@@ -316,12 +316,53 @@ def remove_cart_item(request, product_id):
 def payment_notify(request):
     merchant_id = "1231902"
     merchant_secret = "OTgwNzgzMzI3MzM5Njc5MTc4NzIyMTg4NTYwNTI3ODYyMzc0MDU="
+    # --- Step 1: Extract required data ---
+    data = request.POST  # PayHere sends data as form-encoded
+    order_id = data.get("order_id")
+    payment_id = data.get("payment_id")
+    amount = data.get("amount")
+    currency = data.get("currency")
+    received_hash = data.get("hash")
+    status_code = data.get("status_code")  # 2 = success, 3 = failed, 0 = pending
+    customer_email = data.get("email")
+    product_name = data.get("items")  # the product name(s) sent in payment creation
 
-    print("🔥 Payment notify called")
-    print("POST DATA:", request.POST)
+    # --- Step 2: Verify hash ---
+    hash_string = merchant_id + order_id + str(amount) + currency + merchant_secret
+    expected_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
 
+    if received_hash != expected_hash:
+        # Invalid request, ignore or log
+        return Response("Invalid hash", status=400)
 
+    # --- Step 3: Process only successful payments ---
+    if status_code == "2":  # Payment success
+        # Find user by email
+        try:
+            user = Users.objects.get(email=customer_email)
+        except Users.DoesNotExist:
+            return Response("User not found", status=404)
 
+        # Find product by name (or handle multiple products)
+        try:
+            product = Product.objects.get(name=product_name)
+        except Product.DoesNotExist:
+            return Response("Product not found", status=404)
+
+        # Create Payment record
+        Payment.objects.create(
+            payment_id=payment_id,
+            product_id=product,
+            user_id=user,
+            amount=amount,
+            date_time=timezone.now(),
+        )
+
+        # Optionally, clear cart items for this user
+        user.cart.items.all().delete()
+    
+    # --- Step 4: Respond to PayHere ---
+    return Response("OK", status=200)
 
 
 @api_view(['POST'])
@@ -364,6 +405,9 @@ def save_payment(request):
                 product_id=product,
                 quantity=quantity
             )
+
+        # make sure to import at top
+        Cart.objects.filter(user=user).delete()
 
         return JsonResponse({
             "success": True,

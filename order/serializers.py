@@ -10,13 +10,15 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_product(self, obj):
-        from products.models import Product
-        try:
-            prod = Product.objects.get(product_id=obj.product_id)
-            from products.serializers import ProductSerializer
-            return ProductSerializer(prod).data
-        except Product.DoesNotExist:
-            return None
+        product = obj.product_id
+        if product:
+            return {
+                "id": product.product_id,   # string PK
+                "title": product.title,
+                "price": float(product.price),
+                "image": product.image.url if product.image else None,
+            }
+        return None
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
