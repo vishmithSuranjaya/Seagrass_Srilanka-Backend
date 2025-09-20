@@ -28,10 +28,18 @@ class ProductSerializer(serializers.ModelSerializer):
   
 
 class PaymentSerializer(serializers.ModelSerializer):
+    orders = serializers.SerializerMethodField()
+    
     class Meta:
         model = Payment
         fields ='__all__'
 
+    def get_orders(self, obj):
+        # lazy import to prevent circular import
+        from order.serializers import OrderSerializer
+        # assumes related_name='orders' in Order.payment FK
+        orders = obj.orders.all()
+        return OrderSerializer(orders, many=True).data
 # class CartItemSerializer(serializers.ModelSerializer):
 #     # class Meta:
 #     #     model = CartItem
