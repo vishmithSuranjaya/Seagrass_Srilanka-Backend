@@ -1,13 +1,17 @@
 from django.db import models
 from admin_actions.models import Admin
+import uuid
 
 def gallery_image_upload_path(instance, filename):
     return f'gallery/{filename}'
 
+        
+def generate_uuid():
+    return str(uuid.uuid4())
 
 class Gallery_images(models.Model):
     #this is for storing images and videos 
-    image_id = models.CharField(max_length=10, primary_key = True)
+    image_id = models.CharField(max_length=50, default=generate_uuid, editable=False, primary_key=True)
     uploaded_at = models.DateTimeField(auto_now_add=True) 
     image = models.ImageField(upload_to=gallery_image_upload_path, blank=True, null=True, default=None)
     caption = models.CharField(max_length=100)
@@ -20,3 +24,5 @@ class Gallery_images(models.Model):
         ordering = ['-uploaded_at']
         verbose_name = "Gallery Image"
         verbose_name_plural = "Gallery Images"
+
+
