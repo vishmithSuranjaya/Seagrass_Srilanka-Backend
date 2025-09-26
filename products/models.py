@@ -12,16 +12,25 @@ def products_image_upload_path(instance, filename):
 
 
 class Product(models.Model):
-    product_id = models.CharField(max_length=20, primary_key = True,default=lambda: str(uuid.uuid4())[:10],
-        editable=False)
+    product_id = models.CharField(max_length=20, primary_key = True)
     title = models.CharField(max_length = 100)
-    image = models.ImageField(upload_to=products_image_upload_path, blank=True, null=True)
     price = models.DecimalField(max_digits = 10, decimal_places = 2)
     description = models.TextField(max_length = 500)
     admin_id =models.ForeignKey(Admin, on_delete= models.CASCADE, to_field='admin_id')
 
     def __str__(self):
         return f"Product {self.product_id}"
+    
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        Product,
+        related_name="images",   # allows product.images.all()
+        on_delete=models.CASCADE
+    )
+    image = models.ImageField(upload_to=products_image_upload_path)
+
+    def __str__(self):
+        return f"Image for {self.product.title}"
     
 # class Cart(models.Model):
 #     #cart model
