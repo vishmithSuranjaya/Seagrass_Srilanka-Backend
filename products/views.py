@@ -183,6 +183,13 @@ def create_payment(request):
     order_id = str(uuid.uuid4())[0:20]
     amount = "{:.2f}".format(float(request.data.get("total_amount", 0)))
     currency = "LKR"
+    checkout = request.data.get("checkout", {})
+    full_name = checkout.get("full_name", "Guest")
+    phone = checkout.get("phone", "")
+    email = checkout.get("email", "guest@example.com")  # optional, if you collect
+    address = checkout.get("address", "")
+    city = checkout.get("city", "")
+    country = "Sri Lanka"
 
     items_list = request.data.get("items", [])
     items = ", ".join([str(item["product_id"]) for item in items_list]) if items_list else "Products"
@@ -208,11 +215,11 @@ def create_payment(request):
         "currency": currency,
         "hash": hash_value,
         "first_name": "Seagrass",
-        "last_name": "Sri Lanka",
+        "last_name": full_name,
         "email": "suranjaya0327@gmail.com",
-        "phone": "0771234567",
-        "address": "Colombo",
-        "city": "Colombo",
+        "phone": phone,
+        "address": address,
+        "city":  city,
         "country": "Sri Lanka",
     }
 
@@ -404,9 +411,10 @@ def save_payment(request):
         product_id = data.get("product_id")
         amount = Decimal(data.get("amount"))
         payment_id = data.get("payment_id")  # you can generate a temporary id
-
+        full_name=data.get("checkout", {}).get("full_name")
+        print("full name is" ,full_name)
         product = Product.objects.get(product_id=product_id)
-        
+        checkout = data.get("checkoutData", {})
 
         payment = Payment.objects.create(
             payment_id=payment_id,
@@ -421,7 +429,16 @@ def save_payment(request):
         order = Order.objects.create(
             order_id=order_id,
             payment_id=payment,
-            price=amount
+            price=amount,
+            full_name=checkout.get("full_name"),
+            email=checkout.get("email"),
+            phone=checkout.get("phone"),
+            province=checkout.get("province"),
+            district=checkout.get("district"),
+            city=checkout.get("city"),
+            street=checkout.get("street"),
+            address=checkout.get("address"),
+            status="False"
         )
 
         # 3️⃣ Create OrderItems
