@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404
 
 from order.models import Order, OrderItem
 from users.models import Users
-from .models import Product, Cart, Payment, CartItem
+from .models import Product, Cart, Payment, CartItem, ProductImage
 from .serializers import ProductSerializer, CartSerializer, PaymentSerializer
 import hashlib
 from django.http import JsonResponse
@@ -48,10 +48,16 @@ def add_products(request):
     serializer = ProductSerializer(data=data)
     if serializer.is_valid():
         product = serializer.save()
+
+        # Handle multiple images
+        images = request.FILES.getlist("images")
+        for img in images:
+            ProductImage.objects.create(product=product, image=img)
+
         return Response({
             'success': True,
             'message': 'Product created successfully',
-            'data': serializer.data
+            'data': ProductSerializer(product).data  # refresh with images
         }, status=status.HTTP_201_CREATED)
 
     return Response({
@@ -60,43 +66,68 @@ def add_products(request):
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
+
 # Delete a product (admin only)
 @api_view(['DELETE'])
 @permission_classes([permissions.IsAdminUser])
 def delete_product(request, product_id):
-    product = Product.objects.filter(product_id=product_id).first()
-    if not product:
-        return Response({
-            'success': False,
-            'message': 'Product not found',
-        }, status=status.HTTP_404_NOT_FOUND)
-    
-    if product.image and product.image.name:
-        if os.path.isfile(product.image.path):
-            os.remove(product.image.path)
-    
+    product = get_object_or_404(Product, product_id=product_id)
+    product_images = getattr(product, "images", []) 
+    for img_obj in product_images.all():
+        if hasattr(img_obj, "image") and img_obj.image:
+            if os.path.isfile(img_obj.image.path):
+                os.remove(img_obj.image.path)
+        img_obj.delete()
+
     product.delete()
+
     return Response({
         'success': True,
-        'message': 'Product and its image deleted successfully',
+        'message': 'Product and all its images deleted successfully',
     }, status=status.HTTP_200_OK)
+
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([permissions.IsAdminUser])
 def update_product(request, product_id):
     product = get_object_or_404(Product, product_id=product_id)
-
     partial = request.method == 'PATCH'
+
     data = request.data.copy()
     data['admin_id'] = request.user.user_id
-    if 'product_id' in data:
-        data.pop('product_id')
+    data.pop('product_id', None)
 
+    # Handle removing specific images
+    removed_images = request.data.getlist('removed_images')
+    for img_url in removed_images:
+        try:
+            # Convert URL to relative path
+            relative_path = img_url.replace("http://localhost:8000", "")
+            img_obj = product.images.get(image=relative_path)
+            if img_obj.image and os.path.isfile(img_obj.image.path):
+                os.remove(img_obj.image.path)
+            img_obj.delete()
+        except ProductImage.DoesNotExist:
+            continue
 
+    # Handle clearing all images if clear_images flag is sent
+    clear_images_flag = data.get('clear_images', 'false').lower() == 'true'
+    if clear_images_flag:
+        for img_obj in product.images.all():
+            if img_obj.image and os.path.isfile(img_obj.image.path):
+                os.remove(img_obj.image.path)
+            img_obj.delete()
+
+    # Save updated product data
     serializer = ProductSerializer(product, data=data, partial=partial)
-
     if serializer.is_valid():
         updated_product = serializer.save()
+
+        # Add new uploaded images
+        new_images = request.FILES.getlist('images')
+        for img_file in new_images:
+            ProductImage.objects.create(product=updated_product, image=img_file)
+
         response_serializer = ProductSerializer(updated_product)
         return Response({
             'success': True,
@@ -109,7 +140,6 @@ def update_product(request, product_id):
         'message': 'Validation failed',
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
-
 
 # #add a product to user's cart
 # @api_view(['POST'])
