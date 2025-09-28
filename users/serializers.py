@@ -46,8 +46,7 @@ from .models import Users
 
 class UserProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
-    is_staff = serializers.BooleanField(read_only=True)
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Users
@@ -56,31 +55,32 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'full_name', 'date_joined', 'is_staff', 'image',
             'is_active', 'is_superuser', 'last_login',
         )
-        read_only_fields = ('user_id', 'date_joined', 'is_staff', 'is_superuser', 'last_login')
+        read_only_fields = ('user_id', 'date_joined', 'is_superuser', 'last_login')
 
     def get_full_name(self, obj):
         return f"{obj.fname} {obj.lname}".strip()
 
-    def get_image(self, obj):
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
         request = self.context.get('request')
-        if obj.image:
-            return request.build_absolute_uri(obj.image.url)
-        return None
+        if instance.image and request:
+            data['image'] = request.build_absolute_uri(instance.image.url)
+        else:
+            data['image'] = None
+        return data
 
     def validate_image(self, value):
         if value:
             if value.size > 5 * 1024 * 1024:
                 raise serializers.ValidationError("Image file too large. Size should not exceed 5MB.")
-
             allowed_types = ['image/jpeg', 'image/png', 'image/gif']
             if hasattr(value, 'content_type') and value.content_type not in allowed_types:
                 raise serializers.ValidationError("Invalid image format. Only JPEG, PNG, and GIF are allowed.")
-
         return value
 
     def update(self, instance, validated_data):
         request = self.context.get('request')
         if request and not request.user.is_superuser:
             validated_data.pop('is_staff', None)
-            validated_data.pop('is_superuser', None)  # extra safety
+            validated_data.pop('is_superuser', None)
         return super().update(instance, validated_data)

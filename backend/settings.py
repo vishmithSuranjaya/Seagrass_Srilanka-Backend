@@ -200,3 +200,6 @@ ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
 GOOGLE_CLIENT_ID = "858611739041-90tcrhafg7po44gpihk6f4jel60cdh7n.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "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"
 GOOGLE_REDIRECT_URI = "http://localhost:8000/api/auth/google/callback/"
+
+TIME_ZONE = 'Asia/Colombo'
+USE_TZ = True

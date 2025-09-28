@@ -1,8 +1,6 @@
 import os
 from django.db import models
 from users.models import Users
-from admin_actions.models import Admin
-from users.models import Users
 from django.utils import timezone
 
 def blog_image_upload_path(instance, filename):
@@ -21,7 +19,7 @@ class Blog(models.Model):
     status = models.CharField(max_length=15, default="active")
     comment_id = models.CharField(max_length=20, blank=True, null=True, default=None)
     image = models.ImageField(upload_to=blog_image_upload_path, blank=True, null=True, default=None)
-    admin_id = models.ForeignKey( Admin,  on_delete=models.SET_NULL, to_field='admin_id', null=True, blank=True, default=None)
+    
     def __str__(self):
         return self.title
 
