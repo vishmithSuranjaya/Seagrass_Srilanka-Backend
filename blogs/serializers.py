@@ -45,7 +45,6 @@ class BlogSerializer(serializers.ModelSerializer):
             'user_id',
             'user_fname',
             'user_lname',
-            'admin_id',
             'comment_id',
             'comments',
             'user_has_liked',

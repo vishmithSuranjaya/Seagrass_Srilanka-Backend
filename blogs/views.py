@@ -1,3 +1,4 @@
+from django.utils.timezone import localtime, now
 from django.shortcuts import render
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
@@ -198,7 +199,8 @@ def admin_post_blog(request):
 
     serializer = BlogSerializer(data=data, context={'request': request})
     if serializer.is_valid():
-        blog = serializer.save(date=timezone.now().date(), time=timezone.now().time())
+        local_dt = localtime(now())
+        blog = serializer.save(date=local_dt.date(), time=local_dt.time())
         return Response(BlogSerializer(blog, context={'request': request}).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

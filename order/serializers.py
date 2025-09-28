@@ -1,5 +1,7 @@
+
 from rest_framework import serializers
 from order.models import Order, OrderItem
+from users.models import Users  
 from products.serializers import ProductSerializer
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -22,10 +24,15 @@ class OrderItemSerializer(serializers.ModelSerializer):
             }
         return None
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Users
+        fields = ['user_id', 'fname', 'lname', 'email', 'image', 'full_name']
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-
+    user = UserSerializer(source='payment_id.user_id', read_only=True)
     class Meta:
         model = Order
         fields = '__all__'
+

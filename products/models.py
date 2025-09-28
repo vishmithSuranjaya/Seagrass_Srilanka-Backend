@@ -50,7 +50,7 @@ class ProductImage(models.Model):
 
 
 class Payment(models.Model):
-    payment_id = models.CharField(max_length=10, default=generate_unique_payment_id, primary_key=True)
+    payment_id = models.CharField(max_length=50, default=generate_unique_payment_id, primary_key=True)
     product_id = models.ForeignKey(Product, on_delete=models.CASCADE, to_field='product_id')
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE, to_field='user_id')
     amount = models.DecimalField(max_digits=10, decimal_places=2)

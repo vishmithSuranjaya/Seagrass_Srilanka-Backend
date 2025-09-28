@@ -79,7 +79,7 @@ def user_profile(request):
 
 
 @api_view(['PUT', 'PATCH'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def update_profile(request):
     # this is to update the user profile
 
@@ -94,29 +94,41 @@ def update_profile(request):
     
     return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
-#user's profile photo upload
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework import permissions, status
+from rest_framework.response import Response
+from .serializers import UserProfileSerializer
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def upload_profile_image(request):
-    
     if 'image' not in request.FILES:
         return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    serializer = UserProfileSerializer(request.user, data={'image': request.FILES['image']}, partial=True, context={'request': request})
-    
+
+    # Include the current user and request context
+    serializer = UserProfileSerializer(
+        request.user,
+        data={'image': request.FILES['image']},
+        partial=True,
+        context={'request': request}
+    )
+
     if serializer.is_valid():
+        # Delete old image if it exists
         if request.user.image:
             try:
                 request.user.image.delete(save=False)
-            except:
-                pass  
-        
+            except Exception:
+                pass
+
+        # Save new image
         serializer.save()
+
         return Response({
             'message': 'Profile image uploaded successfully',
             'image_url': serializer.data.get('image')
         }, status=status.HTTP_200_OK)
-    
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #delete user profile picture
@@ -240,6 +252,8 @@ def superuser_create_admin_user(request):
         user = serializer.save()
         return Response({'message': 'Admin user created successfully', 'user': UserProfileSerializer(user).data}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 from django.shortcuts import render
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
@@ -364,30 +378,30 @@ def update_profile(request, user_id):
         )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#user's profile photo upload
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def upload_profile_image(request):
+# #user's profile photo upload
+# @api_view(['POST'])
+# @permission_classes([permissions.IsAuthenticated])
+# def upload_profile_image(request):
     
-    if 'image' not in request.FILES:
-        return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
+#     if 'image' not in request.FILES:
+#         return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
     
-    serializer = UserProfileSerializer(request.user, data={'image': request.FILES['image']}, partial=True, context={'request': request})
+#     serializer = UserProfileSerializer(request.user, data={'image': request.FILES['image']}, partial=True, context={'request': request})
     
-    if serializer.is_valid():
-        if request.user.image:
-            try:
-                request.user.image.delete(save=False)
-            except:
-                pass  
+#     if serializer.is_valid():
+#         if request.user.image:
+#             try:
+#                 request.user.image.delete(save=False)
+#             except:
+#                 pass  
         
-        serializer.save()
-        return Response({
-            'message': 'Profile image uploaded successfully',
-            'image_url': serializer.data.get('image')
-        }, status=status.HTTP_200_OK)
+#         serializer.save()
+#         return Response({
+#             'message': 'Profile image uploaded successfully',
+#             'image_url': serializer.data.get('image')
+#         }, status=status.HTTP_200_OK)
     
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #delete user profile picture
 @api_view(['DELETE'])
