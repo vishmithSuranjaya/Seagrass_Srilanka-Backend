@@ -114,3 +114,29 @@ def delete_content(request, model_name, id_value):
         except model_map[model_name.lower()].DoesNotExist:
             return Response({"error": f"{model_name} not found"}, status=status.HTTP_404_NOT_FOUND)
     return Response({"error": "Invalid model name"}, status=status.HTTP_400_BAD_REQUEST)
+
+# Create a new admin user
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def create_admin_user(request):
+    if not request.user.is_staff:
+        return Response({'error': 'User is not an admin.'}, status=status.HTTP_403_FORBIDDEN)
+    
+    data = request.data.copy()
+    data['is_staff'] = True  
+    data['is_superuser'] = False  
+    
+    serializer = AdminSerializer(data=data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response({
+            'success': True,
+            'message': 'Admin user created successfully',
+            'data': AdminSerializer(user).data
+        }, status=status.HTTP_201_CREATED)
+    
+    return Response({
+        'success': False,
+        'message': 'Validation failed',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)

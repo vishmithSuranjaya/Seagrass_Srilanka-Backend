@@ -191,12 +191,31 @@ def admin_update_user(request, user_id):
     except Users.DoesNotExist:
         return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
+    # --- Admin actions table logic ---
+    from admin_actions.models import Admin as AdminActionModel
     if 'is_staff' in request.data:
         if not request.user.is_superuser:
             return Response({'error': 'Only the website owner can change admin status.'}, status=status.HTTP_403_FORBIDDEN)
 
         if user.is_superuser and user == request.user:
             return Response({'error': 'Cannot remove admin rights from the website owner.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If making admin
+        if request.data['is_staff'] and not user.is_staff:
+            # Create or update Admin record
+            AdminActionModel.objects.update_or_create(
+                admin_id=user.user_id,
+                defaults={
+                    'username': user.email,
+                    'password': user.password,
+                    'type': 'admin',
+                }
+            )
+        # If removing admin
+        elif not request.data['is_staff'] and user.is_staff:
+            # Remove Admin record if exists
+            AdminActionModel.objects.filter(admin_id=user.user_id).delete()
 
     serializer = UserProfileSerializer(user, data=request.data, partial=True, context={'request': request})
     if serializer.is_valid():
