@@ -78,21 +78,21 @@ def user_profile(request):
     return Response(serializer.data , status = status.HTTP_200_OK)
 
 
-@api_view(['PUT', 'PATCH'])
-@permission_classes([permissions.AllowAny])
-def update_profile(request):
-    # this is to update the user profile
+# @api_view(['PUT', 'PATCH'])
+# @permission_classes([permissions.AllowAny])
+# def update_profile(request):
+#     # this is to update the user profile
 
-    serializer = UserProfileSerializer(request.user, data = request.data, partial=True, context={'request': request})
-    if serializer.is_valid():
-        serializer.save()
-        return Response({
-    'message': 'Profile updated successfully',
-    'user': serializer.data
-}, status=status.HTTP_200_OK)
+#     serializer = UserProfileSerializer(request.user, data = request.data, partial=True, context={'request': request})
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response({
+#     'message': 'Profile updated successfully',
+#     'user': serializer.data
+# }, status=status.HTTP_200_OK)
 
     
-    return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+#     return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import permissions, status

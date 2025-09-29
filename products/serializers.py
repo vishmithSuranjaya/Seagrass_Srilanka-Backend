@@ -24,8 +24,8 @@ class ProductSerializer(serializers.ModelSerializer):
     def validate_description(self, value):
         if not value or not value.strip():
             raise serializers.ValidationError("Description cannot be empty.")
-        if len(value) > 200:
-            raise serializers.ValidationError("Description cannot exceed 200 characters.")
+        if len(value) > 500:
+            raise serializers.ValidationError("Description cannot exceed 500 characters.")
         return value.strip()
 
     def validate_price(self, value):
@@ -57,6 +57,7 @@ class PaymentSerializer(serializers.ModelSerializer):
 class CartItemSerializer(serializers.ModelSerializer):
     product_id = serializers.CharField(source="product.product_id", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
+    product_title = serializers.CharField(source="product.title", read_only=True)
     product_price = serializers.DecimalField(source="product.price", max_digits=20, decimal_places=2, read_only=True)
     product_image = serializers.SerializerMethodField()
 
