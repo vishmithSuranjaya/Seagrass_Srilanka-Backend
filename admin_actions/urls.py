@@ -10,6 +10,7 @@ urlpatterns = [
     path('research/add/', views.add_research_articles, name='add_research_articles'),
     path('gallery/manage/', views.manage_gallery, name='manage_gallery'),
     path('delete/<str:model_name>/<str:id_value>/', views.delete_content, name='delete_content'),
+    path('create_admin_user/', views.create_admin_user, name='create_admin_user'),
 
    
 ]
