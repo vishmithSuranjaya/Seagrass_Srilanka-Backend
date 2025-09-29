@@ -29,6 +29,7 @@ class BlogSerializer(serializers.ModelSerializer):
     user_has_liked = serializers.SerializerMethodField()
     user_fname = serializers.SerializerMethodField()
     user_lname = serializers.SerializerMethodField()
+    user_profile_picture = serializers.SerializerMethodField()
 
     class Meta:
         model = Blog
@@ -45,6 +46,7 @@ class BlogSerializer(serializers.ModelSerializer):
             'user_id',
             'user_fname',
             'user_lname',
+            'user_profile_picture',
             'comment_id',
             'comments',
             'user_has_liked',
@@ -54,6 +56,14 @@ class BlogSerializer(serializers.ModelSerializer):
 
     def get_user_lname(self, obj):
         return obj.user_id.lname if obj.user_id else ''
+    
+    def get_user_profile_picture(self, obj):
+        if obj.user_id and obj.user_id.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.user_id.image.url)
+            return obj.user_id.image.url
+        return None
 
     def get_image_url(self, obj):
         if obj.image:
